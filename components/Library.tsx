@@ -9,6 +9,7 @@ interface Props {
   auth: Auth;
   t: (key: string) => string;
   onOpenBook: (book: Book) => void;
+  onEditBook: (book: Book) => void;
   onCreateClick: () => void;
   onResetLang: () => void;
   onRate: (id: string, type: 'personal' | 'universal', rating: number) => void;
@@ -16,7 +17,7 @@ interface Props {
   lastSync: number;
 }
 
-const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onCreateClick, onResetLang, onRate, onApprove, lastSync }) => {
+const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onEditBook, onCreateClick, onResetLang, onRate, onApprove, lastSync }) => {
   const [selectedAge, setSelectedAge] = useState<number | null>(null);
   const [sortMethod, setSortMethod] = useState<'newest' | 'rating'>('newest');
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
@@ -162,15 +163,23 @@ const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onC
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 
-                {auth.role === 'admin' && !book.isApproved && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onApprove(book.id); }}
-                    className="absolute inset-0 bg-rose-950/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <div className="bg-emerald-500 text-white px-6 py-3 rounded-full font-black uppercase text-sm shadow-xl animate-bounce" style={{ fontSize: `${0.875 * zoomLevel}rem` }}>
-                      Approve Story
-                    </div>
-                  </button>
+                {auth.role === 'admin' && (
+                  <div className="absolute inset-0 bg-rose-950/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-4">
+                    {!book.isApproved && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onApprove(book.id); }}
+                        className="bg-emerald-500 text-white px-6 py-2 rounded-full font-black uppercase text-sm shadow-xl hover:scale-105 transition-transform"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onEditBook(book); }}
+                      className="bg-amber-400 text-rose-950 px-6 py-2 rounded-full font-black uppercase text-sm shadow-xl hover:scale-105 transition-transform"
+                    >
+                      ✏️ Edit Book
+                    </button>
+                  </div>
                 )}
 
                 <div className="absolute top-2 left-2 flex flex-col gap-1">

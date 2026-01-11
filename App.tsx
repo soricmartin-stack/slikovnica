@@ -9,7 +9,6 @@ import Reader from './components/Reader';
 import Creator from './components/Creator';
 import { GoogleGenAI } from "@google/genai";
 
-// Simple IndexedDB wrapper for large data storage
 const DB_NAME = 'StoryTimeDB';
 const STORE_NAME = 'books';
 const DB_VERSION = 1;
@@ -78,17 +77,18 @@ const App: React.FC = () => {
   const [displayBooks, setDisplayBooks] = useState<Book[]>([]);
   
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [busyMessage, setBusyMessage] = useState('');
   const [lastSync, setLastSync] = useState<number>(Date.now());
 
-  // Initialize from IndexedDB (Garden Cloud)
   useEffect(() => {
     const loadData = async () => {
       try {
         const stored = await getAllBooksFromDB();
         if (stored.length > 0) {
           setMasterBooks(stored);
+          setDisplayBooks(stored);
         } else {
           const seedBooks: Book[] = [
             {
@@ -113,6 +113,7 @@ const App: React.FC = () => {
           ];
           await saveAllBooksToDB(seedBooks);
           setMasterBooks(seedBooks);
+          setDisplayBooks(seedBooks);
         }
       } catch (err) {
         console.error("Failed to load from IndexedDB", err);
@@ -126,43 +127,50 @@ const App: React.FC = () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     setIsBusy(true);
-    setBusyMessage(`Fairies are gathering stories in ${targetLangName}...`);
+    setBusyMessage(`Magical forces are translating stories...`);
     
     try {
       const translated = await Promise.all(sourceBooks.map(async (book) => {
         if (book.language === targetLangCode) return book;
+        try {
+          const prompt = `Translate this children's book into ${targetLangName}. 
+          Return ONLY a JSON object with keys "title" and "pages" (an array of strings).
+          Original Language: ${book.language}
+          Book Title: "${book.title}"
+          Pages: ${JSON.stringify(book.pages.map(p => p.text))}`;
 
-        const prompt = `Translate this children's book into ${targetLangName}. 
-        Return ONLY a JSON object with keys "title" and "pages" (an array of strings).
-        Original Language: ${book.language}
-        Book Title: "${book.title}"
-        Pages: ${JSON.stringify(book.pages.map(p => p.text))}`;
+          const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: { responseMimeType: 'application/json' }
+          });
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: prompt,
-          config: { responseMimeType: 'application/json' }
-        });
-
-        const data = JSON.parse(response.text || '{}');
-        return {
-          ...book,
-          title: data.title || book.title,
-          language: targetLangCode,
-          pages: book.pages.map((p, idx) => ({
-            ...p,
-            text: data.pages?.[idx] || p.text
-          }))
-        };
+          const data = JSON.parse(response.text || '{}');
+          return {
+            ...book,
+            title: data.title || book.title,
+            language: targetLangCode,
+            pages: book.pages.map((p, idx) => ({
+              ...p,
+              text: data.pages?.[idx] || p.text
+            }))
+          };
+        } catch (e) {
+          console.warn(`Could not translate book ${book.id}, keeping original.`, e);
+          return book;
+        }
       }));
-
       setDisplayBooks(translated);
     } catch (error) {
-      console.error("Session translation failed", error);
+      console.error("Session translation process failed", error);
       setDisplayBooks(sourceBooks);
     } finally {
       setIsBusy(false);
-      setView('login');
+      if (auth) {
+        setView('library');
+      } else {
+        setView('login');
+      }
     }
   };
 
@@ -176,32 +184,40 @@ const App: React.FC = () => {
     setView('library');
   };
 
-  const handleCreateBook = async (newBook: Book) => {
+  const handleSaveBook = async (bookData: Book) => {
     setIsBusy(true);
-    setBusyMessage('Planting your story in the Eternal Garden...');
+    setBusyMessage('Saving to the Cloud Garden...');
     
     try {
-      const bookWithMeta: Book = {
-        ...newBook,
-        id: generateSafeId(),
-        creatorName: auth?.name || 'Explorer',
-        isApproved: auth?.role === 'admin'
+      const existingInMaster = masterBooks.find(b => b.id === bookData.id);
+      const isNew = !existingInMaster;
+      
+      const bookToSave: Book = {
+        ...bookData,
+        id: isNew ? generateSafeId() : bookData.id,
+        creatorName: isNew ? (auth?.name || 'Explorer') : bookData.creatorName,
+        isApproved: auth?.role === 'admin' ? true : bookData.isApproved,
+        createdAt: isNew ? Date.now() : (existingInMaster?.createdAt || Date.now())
       };
 
-      // Save to persistent storage (IndexedDB handles large files)
-      await saveBookToDB(bookWithMeta);
+      await saveBookToDB(bookToSave);
       
-      const updatedMaster = [bookWithMeta, ...masterBooks];
-      setMasterBooks(updatedMaster);
-      setDisplayBooks([bookWithMeta, ...displayBooks]);
+      if (isNew) {
+        setMasterBooks(prev => [bookToSave, ...prev]);
+        setDisplayBooks(prev => [bookToSave, ...prev]);
+      } else {
+        setMasterBooks(prev => prev.map(b => b.id === bookToSave.id ? bookToSave : b));
+        setDisplayBooks(prev => prev.map(b => b.id === bookToSave.id ? bookToSave : b));
+      }
+      
       setLastSync(Date.now());
-
       setIsBusy(false);
+      setEditingBook(null);
       setView('library');
     } catch (err) {
       console.error("Save failed:", err);
       setIsBusy(false);
-      alert("The garden soil is too full! Could not save the story. (Storage Error)");
+      alert("Storage error! Could not save your story.");
     }
   };
 
@@ -215,27 +231,24 @@ const App: React.FC = () => {
   };
 
   const updateBookRating = async (bookId: string, type: 'personal' | 'universal', newRating: number) => {
-    const updatedMaster = masterBooks.map(b => {
-      if (b.id === bookId) {
-        return { ...b, [type === 'personal' ? 'personalRating' : 'universalRating']: newRating };
-      }
-      return b;
-    });
-    setMasterBooks(updatedMaster);
-    setDisplayBooks(displayBooks.map(b => {
-      if (b.id === bookId) {
-        return { ...b, [type === 'personal' ? 'personalRating' : 'universalRating']: newRating };
-      }
-      return b;
-    }));
+    const updateFn = (b: Book) => b.id === bookId ? { ...b, [type === 'personal' ? 'personalRating' : 'universalRating']: newRating } : b;
+    setMasterBooks(prev => prev.map(updateFn));
+    setDisplayBooks(prev => prev.map(updateFn));
 
-    const targetBook = updatedMaster.find(b => b.id === bookId);
-    if (targetBook) await saveBookToDB(targetBook);
+    const targetBook = masterBooks.find(b => b.id === bookId);
+    if (targetBook) {
+      await saveBookToDB({ ...targetBook, [type === 'personal' ? 'personalRating' : 'universalRating']: newRating });
+    }
   };
 
   const openBook = (book: Book) => {
     setSelectedBook(book);
     setView('reader');
+  };
+
+  const startEditing = (book: Book) => {
+    setEditingBook(book);
+    setView('creator');
   };
 
   const t = (key: string) => {
@@ -267,14 +280,8 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full overflow-hidden flex flex-col">
-      {view === 'language_select' && (
-        <LanguageSelector onSelect={handleLanguageSelect} />
-      )}
-
-      {view === 'login' && (
-        <Login onLogin={handleLogin} t={t} />
-      )}
-
+      {view === 'language_select' && <LanguageSelector onSelect={handleLanguageSelect} />}
+      {view === 'login' && <Login onLogin={handleLogin} t={t} />}
       {view === 'library' && auth && (
         <Library 
           books={displayBooks} 
@@ -282,14 +289,14 @@ const App: React.FC = () => {
           auth={auth}
           t={t}
           onOpenBook={openBook}
-          onCreateClick={() => setView('creator')}
+          onEditBook={startEditing}
+          onCreateClick={() => { setEditingBook(null); setView('creator'); }}
           onResetLang={() => setView('language_select')}
           onRate={updateBookRating}
           onApprove={handleApproveBook}
           lastSync={lastSync}
         />
       )}
-
       {view === 'reader' && selectedBook && (
         <Reader 
           book={selectedBook} 
@@ -298,14 +305,14 @@ const App: React.FC = () => {
           onRate={updateBookRating}
         />
       )}
-
       {view === 'creator' && auth && (
         <Creator 
-          onSave={handleCreateBook} 
-          onCancel={() => setView('library')}
+          onSave={handleSaveBook} 
+          onCancel={() => { setEditingBook(null); setView('library'); }}
           uiLang={currentLang}
           t={t}
           auth={auth}
+          initialBook={editingBook || undefined}
         />
       )}
     </div>
