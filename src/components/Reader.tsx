@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Book } from '../types';
+import { Book } from '../../types';
 
 interface Props {
   book: Book;
@@ -58,20 +58,20 @@ const Reader: React.FC<Props> = ({ book, onClose, t }) => {
         <div className="fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] p-8 md:p-16 max-w-lg w-full text-center shadow-2xl border-[8px] md:border-[16px] border-rose-100 transform animate-in zoom-in duration-300 relative overflow-hidden">
             <h3 className="text-3xl md:text-5xl font-kids text-rose-950 mb-6 md:mb-10 leading-tight">
-              Leave garden?
+              {t('leaveGarden')}
             </h3>
             <div className="flex flex-col gap-4 md:gap-6">
               <button 
                 onClick={onClose}
                 className="w-full py-4 md:py-6 bg-rose-600 text-white rounded-[2rem] md:rounded-[3rem] font-black uppercase text-lg md:text-2xl shadow-xl"
               >
-                Yes, Go Back
+                {t('yesGoBack')}
               </button>
               <button 
                 onClick={() => setShowExitConfirm(false)}
                 className="w-full py-4 md:py-6 bg-rose-50 text-rose-800 rounded-[2rem] md:rounded-[3rem] font-black uppercase text-lg md:text-2xl shadow-sm"
               >
-                Keep Reading
+                {t('keepReading')}
               </button>
             </div>
           </div>
@@ -112,7 +112,7 @@ const Reader: React.FC<Props> = ({ book, onClose, t }) => {
           <div className="flex-[3] p-6 md:p-32 flex flex-col justify-center relative overflow-hidden bg-black/5 md:bg-transparent">
              <div className="hidden xs:block absolute top-4 right-4 text-4xl opacity-5 select-none text-rose-300">🌸</div>
              <p className="text-xl md:text-4xl lg:text-6xl leading-tight font-medium text-slate-800 italic relative z-10 font-kids drop-shadow-sm line-clamp-8 md:line-clamp-none overflow-y-auto no-scrollbar">
-               {currentPage.text || "..."}
+               {currentPage.text || ''}
              </p>
           </div>
         </div>

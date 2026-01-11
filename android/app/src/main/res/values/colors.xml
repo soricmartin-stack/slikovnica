@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary colors -->
+    <color name="primary">#FF6B6B</color>
+    <color name="primary_dark">#E55555</color>
+    <color name="primary_light">#FF8A8A</color>
+    
+    <!-- Secondary colors -->
+    <color name="secondary">#4ECDC4</color>
+    <color name="secondary_dark">#3DB9B1</color>
+    
+    <!-- Background colors -->
+    <color name="background">#F7F9FC</color>
+    <color name="surface">#FFFFFF</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#2D3436</color>
+    <color name="text_secondary">#636E72</color>
+    <color name="text_on_primary">#FFFFFF</color>
+    
+    <!-- Status colors -->
+    <color name="success">#00B894</color>
+    <color name="warning">#FDCB6E</color>
+    <color name="error">#FF7675</color>
+    
+    <!-- Splash screen colors -->
+    <color name="splash_background">#F7F9FC</color>
+    
+    <!-- Transparent colors -->
+    <color name="transparent">#00000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

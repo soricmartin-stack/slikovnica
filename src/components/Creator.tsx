@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Book, Page, LanguageCode, Auth } from '../types';
-import { LANGUAGES, AGE_GROUPS, GARDEN_COLORS } from '../constants';
+import { Book, Page, LanguageCode, Auth } from '../../types';
+import { LANGUAGES, AGE_GROUPS, GARDEN_COLORS } from '../../constants';
 import { GoogleGenAI } from "@google/genai";
 
 interface Props {

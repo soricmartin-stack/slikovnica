@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { Book, LanguageCode, Auth } from '../types';
-import { LANGUAGES, AGE_GROUPS } from '../constants';
+import { Book, LanguageCode, Auth } from '../../types';
+import { LANGUAGES, AGE_GROUPS } from '../../constants';
 
 interface Props {
   books: Book[];
@@ -15,9 +15,11 @@ interface Props {
   onRate: (id: string, type: 'personal' | 'universal', rating: number) => void;
   onApprove: (id: string) => void;
   lastSync: number;
+  onLogout: () => void;
+  onChangeLanguage: (code: LanguageCode) => void;
 }
 
-const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onEditBook, onCreateClick, onResetLang, onRate, onApprove, lastSync }) => {
+const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onEditBook, onCreateClick, onResetLang, onRate, onApprove, lastSync, onLogout, onChangeLanguage }) => {
   const [selectedAge, setSelectedAge] = useState<number | null>(null);
   const [sortMethod, setSortMethod] = useState<'newest' | 'rating'>('newest');
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
@@ -60,7 +62,7 @@ const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onE
         ))}
       </div>
       <span className="text-[6px] md:text-[8px] font-black uppercase opacity-60 tracking-tighter" style={{ fontSize: `${7 * scale}px` }}>
-        {type === 'universal' ? 'World Score' : 'My Love'}
+        {type === 'universal' ? t('worldScore') : t('myLove')}
       </span>
     </div>
   );
@@ -83,11 +85,11 @@ const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onE
             <h1 className="text-xl md:text-3xl font-kids text-white drop-shadow-md leading-none">StoryTime</h1>
             <div className="flex items-center gap-2 mt-1">
                <span className="text-[7px] md:text-[10px] font-black opacity-90 tracking-widest uppercase">
-                 {auth.role === 'admin' ? 'Keeper: ' : 'Explorer: '} {auth.name}
+                 {auth.role === 'admin' ? t('keeper') + ': ' : t('explorer') + ': '} {auth.name}
                </span>
                <div className="flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
                   <span className="text-[8px] animate-pulse">☁️</span>
-                  <span className="text-[6px] md:text-[8px] font-black uppercase opacity-70">Cloud Sync Active</span>
+                  <span className="text-[6px] md:text-[8px] font-black uppercase opacity-70">{t('cloudSync')}</span>
                </div>
             </div>
           </div>
@@ -123,13 +125,37 @@ const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onE
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4 flex-1 justify-end max-w-[50%]">
+          {/* Language Selector */}
+          <div className="flex items-center gap-2 bg-black/10 rounded-full border border-white/20 p-1">
+            <select
+              value={currentLang}
+              onChange={(e) => onChangeLanguage(e.target.value as LanguageCode)}
+              className="bg-transparent text-white text-[8px] md:text-xs font-black uppercase tracking-widest rounded-full px-3 py-1.5 md:py-2 outline-none cursor-pointer hover:bg-white/10 transition-colors"
+            >
+              {LANGUAGES.map(lang => (
+                <option key={lang.code} value={lang.code} className="bg-rose-600 text-white">
+                  {lang.flag} {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={onLogout}
+            className="bg-white/20 hover:bg-white/30 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-full font-black uppercase text-[8px] md:text-xs tracking-widest transition-all flex items-center gap-1 border border-white/20"
+            title={t('logout')}
+          >
+            <span>🚪</span>
+            <span className="hidden sm:inline">{t('logout')}</span>
+          </button>
+
           <select 
             value={sortMethod}
             onChange={(e) => setSortMethod(e.target.value as any)}
             className="hidden lg:block bg-black/20 text-white text-[8px] md:text-xs font-black uppercase tracking-widest rounded-full px-4 py-2 border border-white/20 outline-none"
           >
-            <option value="newest">Newest</option>
+            <option value="newest">{t('newest')}</option>
             <option value="rating">{t('sortByRating')}</option>
           </select>
 
@@ -170,26 +196,26 @@ const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onE
                         onClick={(e) => { e.stopPropagation(); onApprove(book.id); }}
                         className="bg-emerald-500 text-white px-6 py-2 rounded-full font-black uppercase text-sm shadow-xl hover:scale-105 transition-transform"
                       >
-                        Approve
+                        {t('approve')}
                       </button>
                     )}
                     <button 
                       onClick={(e) => { e.stopPropagation(); onEditBook(book); }}
                       className="bg-amber-400 text-rose-950 px-6 py-2 rounded-full font-black uppercase text-sm shadow-xl hover:scale-105 transition-transform"
                     >
-                      ✏️ Edit Book
+                      {t('editBook')}
                     </button>
                   </div>
                 )}
 
                 <div className="absolute top-2 left-2 flex flex-col gap-1">
                    {book.isApproved ? (
-                     <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black uppercase border border-white" style={{ fontSize: `${9 * zoomLevel}px` }}>Approved</span>
+                     <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black uppercase border border-white" style={{ fontSize: `${9 * zoomLevel}px` }}>{t('approved')}</span>
                    ) : (
-                     <span className="bg-amber-500 text-white px-2 py-0.5 rounded-full font-black uppercase border border-white" style={{ fontSize: `${9 * zoomLevel}px` }}>Pending</span>
+                     <span className="bg-amber-500 text-white px-2 py-0.5 rounded-full font-black uppercase border border-white" style={{ fontSize: `${9 * zoomLevel}px` }}>{t('pending')}</span>
                    )}
                    <span className="bg-rose-400 text-white px-2 py-0.5 rounded-full font-black uppercase border border-white" style={{ fontSize: `${9 * zoomLevel}px` }}>
-                     {book.publishStatus}
+                     {book.publishStatus === 'universal' ? t('publishUniversal') : t('publishLocal')}
                    </span>
                 </div>
                 <div className="absolute top-2 right-2 bg-amber-400 text-rose-900 px-2 py-1 rounded-full font-black uppercase shadow-lg border border-white flex items-center gap-1" style={{ fontSize: `${10 * zoomLevel}px` }}>
@@ -219,13 +245,13 @@ const Library: React.FC<Props> = ({ books, currentLang, auth, t, onOpenBook, onE
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-rose-200 py-20 min-w-full">
             <span className="text-6xl md:text-9xl mb-4 md:mb-8 opacity-30 animate-pulse">🥀</span>
-            <p className="text-xl md:text-3xl font-kids text-rose-800/30 tracking-widest uppercase">No flowers yet...</p>
+            <p className="text-xl md:text-3xl font-kids text-rose-800/30 tracking-widest uppercase">{t('noFlowers')}</p>
           </div>
         )}
       </main>
 
       <div className="fixed bottom-2 right-4 flex items-center gap-2 opacity-40 z-0 select-none">
-          <span className="text-[10px] md:text-xs font-black uppercase text-rose-900">Safe in the cloud</span>
+          <span className="text-[10px] md:text-xs font-black uppercase text-rose-900">{t('safeInCloud')}</span>
           <span className="text-xl">☁️</span>
       </div>
     </div>

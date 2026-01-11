@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { LANGUAGES } from '../constants';
-import { LanguageCode } from '../types';
+import { LANGUAGES } from '../../constants';
+import { LanguageCode } from '../../types';
 
 interface Props {
   onSelect: (code: LanguageCode) => void;
