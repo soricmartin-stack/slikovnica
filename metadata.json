@@ -1,0 +1,7 @@
+{
+  "name": "StoryTime - Children's Picture Book Reader",
+  "description": "An interactive picture book application for children to read, explore, and create their own stories in 11 European languages. Features age-based sorting and a 100-page creator.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
