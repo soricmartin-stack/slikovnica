@@ -4,7 +4,14 @@
 
 # StoryTime - Kids Picture Book Creator
 
-A beautiful, interactive storybook creation app for children with AI-powered story translation and Firebase cloud sync.
+A beautiful, interactive storybook creation app for children with AI-powered story translation and Firebase cloud sync. Now available as a native Android app!
+
+## Download the Android App
+
+Get the APK from GitHub Actions:
+1. Go to https://github.com/soricmartin-stack/slikovnica/actions/workflows/build-apk.yml
+2. Click on the latest workflow run
+3. Download the APK from the "Artifacts" section
 
 ## Features
 
