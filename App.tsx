@@ -8,7 +8,12 @@ import Library from './components/Library';
 import Reader from './components/Reader';
 import Creator from './components/Creator';
 import { GoogleGenAI } from "@google/genai";
+import { isFirebaseEnabled } from './firebaseConfig';
 
+/**
+ * DATA SERVICE LAYER
+ * This section abstracts IndexedDB so it can be replaced by Firebase easily.
+ */
 const DB_NAME = 'StoryTimeDB';
 const STORE_NAME = 'books';
 const DB_VERSION = 1;
@@ -27,38 +32,57 @@ const initDB = (): Promise<IDBDatabase> => {
   });
 };
 
-const getAllBooksFromDB = async (): Promise<Book[]> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.getAll();
-    request.onsuccess = () => resolve(request.result || []);
-    request.onerror = () => reject(request.error);
-  });
-};
+const DataService = {
+  async getAllBooks(): Promise<Book[]> {
+    if (isFirebaseEnabled) {
+      // Future Firebase logic: return await getDocs(collection(db, "books"));
+    }
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  },
 
-const saveBookToDB = async (book: Book): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.put(book);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-};
+  async saveBook(book: Book): Promise<void> {
+    if (isFirebaseEnabled) {
+      // Future Firebase logic: await setDoc(doc(db, "books", book.id), book);
+    }
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(book);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
 
-const saveAllBooksToDB = async (books: Book[]): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    store.clear();
-    books.forEach(book => store.add(book));
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-  });
+  async deleteBook(id: string): Promise<void> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async saveAll(books: Book[]): Promise<void> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      store.clear();
+      books.forEach(book => store.add(book));
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  }
 };
 
 const generateSafeId = () => {
@@ -79,13 +103,17 @@ const App: React.FC = () => {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [isBusy, setIsBusy] = useState(false);
-  const [busyMessage, setBusyMessage] = useState('');
+  const [busyMessageKey, setBusyMessageKey] = useState<string>('translatingStories');
   const [lastSync, setLastSync] = useState<number>(Date.now());
+
+  const t = (key: string) => {
+    return UI_TRANSLATIONS[key]?.[currentLang] || UI_TRANSLATIONS[key]?.['en'] || key;
+  };
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const stored = await getAllBooksFromDB();
+        const stored = await DataService.getAllBooks();
         if (stored.length > 0) {
           setMasterBooks(stored);
           setDisplayBooks(stored);
@@ -111,38 +139,46 @@ const App: React.FC = () => {
               ]
             }
           ];
-          await saveAllBooksToDB(seedBooks);
+          await DataService.saveAll(seedBooks);
           setMasterBooks(seedBooks);
           setDisplayBooks(seedBooks);
         }
       } catch (err) {
-        console.error("Failed to load from IndexedDB", err);
+        console.error("Database connection failed", err);
       }
     };
     loadData();
   }, []);
 
+  /**
+   * AI TRANSLATION ENGINE
+   * Optimized for Firebase AI future sync.
+   */
   const createSessionView = async (targetLangCode: LanguageCode, sourceBooks: Book[]) => {
     const targetLangName = LANGUAGES.find(l => l.code === targetLangCode)?.name || 'English';
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     setIsBusy(true);
-    setBusyMessage(`Magical forces are translating stories...`);
+    setBusyMessageKey('translatingStories');
     
     try {
       const translated = await Promise.all(sourceBooks.map(async (book) => {
         if (book.language === targetLangCode) return book;
         try {
-          const prompt = `Translate this children's book into ${targetLangName}. 
+          const prompt = `Act as a high-end children's book translator for an Android App. 
+          Translate this book into ${targetLangName}. 
+          Keep the tone whimsical and appropriate for age ${book.ageGroup}.
           Return ONLY a JSON object with keys "title" and "pages" (an array of strings).
-          Original Language: ${book.language}
           Book Title: "${book.title}"
           Pages: ${JSON.stringify(book.pages.map(p => p.text))}`;
 
           const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: prompt,
-            config: { responseMimeType: 'application/json' }
+            config: { 
+              responseMimeType: 'application/json',
+              temperature: 0.3 // More deterministic for UI translations
+            }
           });
 
           const data = JSON.parse(response.text || '{}');
@@ -156,21 +192,17 @@ const App: React.FC = () => {
             }))
           };
         } catch (e) {
-          console.warn(`Could not translate book ${book.id}, keeping original.`, e);
+          console.warn(`Translation skip for ${book.id}`, e);
           return book;
         }
       }));
       setDisplayBooks(translated);
     } catch (error) {
-      console.error("Session translation process failed", error);
+      console.error("Critical translation failure", error);
       setDisplayBooks(sourceBooks);
     } finally {
       setIsBusy(false);
-      if (auth) {
-        setView('library');
-      } else {
-        setView('login');
-      }
+      setView(auth ? 'library' : 'login');
     }
   };
 
@@ -184,9 +216,14 @@ const App: React.FC = () => {
     setView('library');
   };
 
+  const handleLogout = () => {
+    setAuth(null);
+    setView('login');
+  };
+
   const handleSaveBook = async (bookData: Book) => {
     setIsBusy(true);
-    setBusyMessage('Saving to the Cloud Garden...');
+    setBusyMessageKey('savingCloud');
     
     try {
       const existingInMaster = masterBooks.find(b => b.id === bookData.id);
@@ -196,11 +233,11 @@ const App: React.FC = () => {
         ...bookData,
         id: isNew ? generateSafeId() : bookData.id,
         creatorName: isNew ? (auth?.name || 'Explorer') : bookData.creatorName,
-        isApproved: auth?.role === 'admin' ? true : bookData.isApproved,
+        isApproved: auth?.role === 'admin' ? true : false,
         createdAt: isNew ? Date.now() : (existingInMaster?.createdAt || Date.now())
       };
 
-      await saveBookToDB(bookToSave);
+      await DataService.saveBook(bookToSave);
       
       if (isNew) {
         setMasterBooks(prev => [bookToSave, ...prev]);
@@ -215,9 +252,27 @@ const App: React.FC = () => {
       setEditingBook(null);
       setView('library');
     } catch (err) {
-      console.error("Save failed:", err);
+      console.error("Cloud garden sync failed:", err);
       setIsBusy(false);
-      alert("Storage error! Could not save your story.");
+      alert("Storage error! Could not sync your story.");
+    }
+  };
+
+  const handleDeleteBook = async (bookId: string) => {
+    if (!window.confirm("Are you sure you want to delete this book?")) return;
+    
+    setIsBusy(true);
+    setBusyMessageKey('savingCloud');
+    try {
+      await DataService.deleteBook(bookId);
+      setMasterBooks(prev => prev.filter(b => b.id !== bookId));
+      setDisplayBooks(prev => prev.filter(b => b.id !== bookId));
+      setLastSync(Date.now());
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Error deleting book.");
+    } finally {
+      setIsBusy(false);
     }
   };
 
@@ -227,7 +282,7 @@ const App: React.FC = () => {
     setDisplayBooks(displayBooks.map(b => b.id === bookId ? { ...b, isApproved: true } : b));
     
     const targetBook = updatedMaster.find(b => b.id === bookId);
-    if (targetBook) await saveBookToDB(targetBook);
+    if (targetBook) await DataService.saveBook(targetBook);
   };
 
   const updateBookRating = async (bookId: string, type: 'personal' | 'universal', newRating: number) => {
@@ -237,22 +292,8 @@ const App: React.FC = () => {
 
     const targetBook = masterBooks.find(b => b.id === bookId);
     if (targetBook) {
-      await saveBookToDB({ ...targetBook, [type === 'personal' ? 'personalRating' : 'universalRating']: newRating });
+      await DataService.saveBook({ ...targetBook, [type === 'personal' ? 'personalRating' : 'universalRating']: newRating });
     }
-  };
-
-  const openBook = (book: Book) => {
-    setSelectedBook(book);
-    setView('reader');
-  };
-
-  const startEditing = (book: Book) => {
-    setEditingBook(book);
-    setView('creator');
-  };
-
-  const t = (key: string) => {
-    return UI_TRANSLATIONS[key]?.[currentLang] || UI_TRANSLATIONS[key]?.['en'] || key;
   };
 
   if (isBusy) {
@@ -268,7 +309,7 @@ const App: React.FC = () => {
               ))}
             </div>
           </div>
-          <p className="text-3xl font-kids mt-8 animate-pulse drop-shadow-md">{busyMessage}</p>
+          <p className="text-3xl font-kids mt-8 animate-pulse drop-shadow-md">{t(busyMessageKey)}</p>
         </div>
         <style>{`
           @keyframes grow-stem { 0% { transform: scaleY(0.1); } 50% { transform: scaleY(1); } 100% { transform: scaleY(0.1); } }
@@ -288,8 +329,10 @@ const App: React.FC = () => {
           currentLang={currentLang}
           auth={auth}
           t={t}
-          onOpenBook={openBook}
-          onEditBook={startEditing}
+          onOpenBook={(book) => { setSelectedBook(book); setView('reader'); }}
+          onEditBook={(book) => { setEditingBook(book); setView('creator'); }}
+          onDeleteBook={handleDeleteBook}
+          onLogout={handleLogout}
           onCreateClick={() => { setEditingBook(null); setView('creator'); }}
           onResetLang={() => setView('language_select')}
           onRate={updateBookRating}

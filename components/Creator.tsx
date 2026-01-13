@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Book, Page, LanguageCode, Auth } from '../../types';
-import { LANGUAGES, AGE_GROUPS, GARDEN_COLORS } from '../../constants';
+import { Book, Page, LanguageCode, Auth } from '../types';
+import { LANGUAGES, AGE_GROUPS, GARDEN_COLORS } from '../constants';
 import { GoogleGenAI } from "@google/genai";
 
 interface Props {
@@ -93,7 +93,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
     if (file) {
       const limit = 2 * 1024 * 1024;
       if (!isAdmin && file.size > limit) {
-        alert("Little Explorer, this photo is too heavy for our garden! Please pick a smaller one (under 2MB).");
+        alert(t('maxSizeTip'));
         return;
       }
       const reader = new FileReader();
@@ -108,7 +108,6 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
     if (!isAdmin || isGenerating) return;
     const pageText = pages[activePageIndex].text.trim();
     if (!pageText) {
-      alert("Garden Keeper, please write the story text for this page first so the magic knows what to draw!");
       return;
     }
     setIsGenerating(true);
@@ -133,7 +132,6 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
       }
     } catch (error) {
       console.error("AI Generation Error:", error);
-      alert("Magic wand failure! Try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -142,14 +140,13 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
   const handleFinish = () => {
     if (isGenerating || isSaving) return;
     if (!title.trim()) {
-      alert("Please enter a title!");
       return;
     }
     setIsSaving(true);
     const bookToSave: Book = {
       id: initialBook?.id || 'book-' + Date.now(),
       title: title.trim(),
-      author: author.trim() || 'Garden Scribe',
+      author: author.trim() || t('gardenScribe'),
       creatorName: initialBook?.creatorName || '', 
       isApproved: isAdmin ? true : (initialBook?.isApproved || false), 
       coverImage: pages[0].imageUrl,
@@ -173,7 +170,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
             {t('back')}
           </button>
           <div className="hidden sm:block">
-            <h2 className="text-sm md:text-xl font-kids text-rose-50">Garden Atelier</h2>
+            <h2 className="text-sm md:text-xl font-kids text-rose-50">{t('gardenAtelier')}</h2>
           </div>
         </div>
 
@@ -192,7 +189,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
               </button>
             ))}
           </div>
-          <span className="text-[7px] md:text-[9px] font-black uppercase opacity-60 tracking-widest">Story Language</span>
+          <span className="text-[7px] md:text-[9px] font-black uppercase opacity-60 tracking-widest">{t('storyLanguage')}</span>
         </div>
         
         <button 
@@ -204,7 +201,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
               : 'bg-amber-400 text-rose-950 hover:bg-amber-300 active:scale-95 border-amber-600 active:border-b-0'
           }`}
         >
-          {isGenerating ? 'WAND MAGIC...' : (isSaving ? 'PLANTING...' : t('finish'))}
+          {isGenerating ? t('wandMagic') : (isSaving ? t('planting') : t('finish'))}
         </button>
       </header>
 
@@ -249,23 +246,23 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
                   type="text" 
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Title..."
+                  placeholder={`${t('titlePrompt')}...`}
                   className="w-full text-xs md:text-2xl font-kids border-none focus:ring-0 outline-none p-2 md:p-3 bg-rose-50/50 rounded-lg text-rose-950"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[7px] md:text-[10px] font-black text-rose-300 uppercase px-1">Storyteller</label>
+                <label className="text-[7px] md:text-[10px] font-black text-rose-300 uppercase px-1">{t('creator')}</label>
                 <input 
                   type="text" 
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="Author..."
+                  placeholder={`${t('creator')}...`}
                   className="w-full text-xs md:text-xl font-kids border-none focus:ring-0 outline-none p-2 md:p-3 bg-rose-50/50 rounded-lg text-rose-950"
                 />
               </div>
 
               <div className="space-y-1">
-                  <label className="text-[7px] md:text-[10px] font-black text-rose-300 uppercase px-1">Publish Destination</label>
+                  <label className="text-[7px] md:text-[10px] font-black text-rose-300 uppercase px-1">{t('publishDestination')}</label>
                   <div className="flex gap-2">
                     <button 
                       onClick={() => setPublishStatus('local')}
@@ -283,7 +280,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
               </div>
 
               <div className="space-y-1">
-                  <label className="text-[7px] md:text-[10px] font-black text-rose-300 uppercase px-1">Age Group</label>
+                  <label className="text-[7px] md:text-[10px] font-black text-rose-300 uppercase px-1">{t('ageGroup')}</label>
                   <div className="flex gap-1 md:gap-3 p-1 overflow-x-auto no-scrollbar">
                     {AGE_GROUPS.map(age => (
                       <button
@@ -300,7 +297,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
               </div>
 
               <div className="col-span-2 space-y-1 pt-2">
-                  <label className="text-[7px] md:text-[10px] font-black text-rose-300 uppercase px-1">Background Color</label>
+                  <label className="text-[7px] md:text-[10px] font-black text-rose-300 uppercase px-1">{t('backgroundColorLabel')}</label>
                   <div className="flex gap-3 p-1 overflow-x-auto no-scrollbar">
                     {GARDEN_COLORS.map(color => (
                       <button
@@ -322,7 +319,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
                 {isGenerating ? (
                   <div className="flex flex-col items-center gap-4 animate-pulse p-8 text-center">
                     <span className="text-5xl md:text-7xl">🪄✨</span>
-                    <span className="text-[10px] md:text-base font-black text-rose-600 uppercase tracking-widest">Wand is spinning...</span>
+                    <span className="text-[10px] md:text-base font-black text-rose-600 uppercase tracking-widest">{t('wandSpinning')}</span>
                   </div>
                 ) : (
                   <>
@@ -345,19 +342,18 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
                             onClick={generateAIIllustration}
                             className="bg-amber-400 text-rose-950 px-8 py-3 rounded-full font-black uppercase text-[10px] md:text-xs shadow-lg flex items-center gap-2 hover:bg-amber-300 transition-colors"
                           >
-                            🪄 Magic Wand
+                            🪄 {t('wandMagic')}
                           </button>
                         )}
                       </div>
                       
                       <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-4 max-w-[85%] border border-white/30">
-                        <p className="text-white font-black text-[10px] uppercase tracking-tighter mb-1">Garden Tip</p>
-                        <p className="text-white/90 text-[9px] md:text-[11px] font-bold leading-tight">
-                          16:9 ratio is perfect for Smartphones!<br/>
-                          4:3 is lovely for Tablets and iPads!
+                        <p className="text-white font-black text-[10px] uppercase tracking-tighter mb-1">{t('gardenTip')}</p>
+                        <p className="text-white/90 text-[9px] md:text-[11px] font-bold leading-tight whitespace-pre-line">
+                          {t('ratioTip')}
                         </p>
                         {!isAdmin && (
-                          <span className="mt-2 inline-block text-amber-300 font-black text-[9px] uppercase tracking-tighter bg-black/40 px-3 py-1 rounded-full border border-white/10">Max 2MB per photo</span>
+                          <span className="mt-2 inline-block text-amber-300 font-black text-[9px] uppercase tracking-tighter bg-black/40 px-3 py-1 rounded-full border border-white/10">{t('maxSizeTip')}</span>
                         )}
                       </div>
                     </div>
@@ -368,7 +364,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
               
               <div className="flex-[2] p-4 md:p-8 flex flex-col justify-between" style={{ backgroundColor: `${backgroundColor}dd` }}>
                 <div>
-                  <span className="text-[10px] md:text-[12px] font-black text-rose-400 tracking-widest uppercase mb-1 block">Petal {activePageIndex + 1}</span>
+                  <span className="text-[10px] md:text-[12px] font-black text-rose-400 tracking-widest uppercase mb-1 block">{t('petal')} {activePageIndex + 1}</span>
                   <textarea 
                     value={pages[activePageIndex].text}
                     onChange={(e) => updatePage(activePageIndex, { text: e.target.value })}
@@ -397,7 +393,7 @@ const Creator: React.FC<Props> = ({ onSave, onCancel, uiLang, t, auth, initialBo
                       onClick={addPage}
                       className="flex-1 bg-amber-400 text-rose-950 py-3 rounded-full font-black uppercase text-[10px] md:text-xs shadow-md"
                     >
-                      + Page
+                      + {t('petal')}
                     </button>
                   )}
                 </div>

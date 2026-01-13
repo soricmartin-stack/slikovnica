@@ -3,21 +3,8 @@ export type LanguageCode = 'en' | 'de' | 'fr' | 'es' | 'it' | 'pt' | 'nl' | 'pl'
 export type UserRole = 'admin' | 'user';
 
 export interface Auth {
-  uid: string;
   role: UserRole;
   name: string;
-  email?: string;
-  photoURL?: string;
-  provider?: string;
-}
-
-export interface FirebaseUserData {
-  email?: string;
-  displayName?: string;
-  photoURL?: string;
-  createdAt: any;
-  lastLogin: any;
-  role: 'user' | 'admin';
 }
 
 export interface Language {

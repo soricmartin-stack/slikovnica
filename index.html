@@ -3,37 +3,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <meta name="theme-color" content="#e11d48">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="StoryTime">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="theme-color" content="#FF6B6B">
+    <link rel="manifest" href="manifest.json">
     <title>StoryTime</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        html, body {
-            touch-action: manipulation;
-            overscroll-behavior: none;
-        }
         body {
             font-family: 'Quicksand', sans-serif;
             margin: 0;
-            padding: 0;
             overflow: hidden;
-            background-color: #fdf2f8;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
+            background-color: #fdf2f8; /* pink-50 */
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .font-kids {
             font-family: 'Fredoka One', cursive;
@@ -53,16 +38,27 @@
             90% { opacity: 1; }
             100% { transform: translateY(110vh) rotate(720deg) translateX(100px); opacity: 0; }
         }
-        /* Disable selection on mobile */
-        ::selection {
-            background: transparent;
+        /* Lock focus to landscape-ish aspect ratios */
+        @media screen and (orientation: portrait) {
+            .portrait-warning {
+                display: flex;
+            }
         }
-        /* Fix for notched phones */
-        .safe-area-top {
-            padding-top: env(safe-area-inset-top);
+        @media screen and (orientation: landscape) {
+            .portrait-warning {
+                display: none;
+            }
         }
-        .safe-area-bottom {
-            padding-bottom: env(safe-area-inset-bottom);
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #be185d; /* pink-700 */
+            border-radius: 10px;
         }
     </style>
 <script type="importmap">
@@ -80,7 +76,6 @@
     <div id="root" class="relative z-10"></div>
     <!-- Garden Petal Layer -->
     <div id="particles-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
-    <script type="module" src="./index.tsx"></script>
     <script>
         const container = document.getElementById('particles-container');
         for (let i = 0; i < 25; i++) {
@@ -98,14 +93,14 @@
             container.appendChild(p);
         }
     </script>
-    <div class="portrait-warning fixed inset-0 bg-pink-600 z-[9999] hidden flex-col items-center justify-center text-white p-8 text-center">
-        <div class="animate-bounce mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-32 w-32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="portrait-warning fixed inset-0 bg-rose-600 z-[9999] hidden flex-col items-center justify-center text-white p-8 text-center">
+        <div class="animate-bounce mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-40 w-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
         </div>
-        <h1 class="text-4xl font-kids mb-2">Sideways for the Garden!</h1>
-        <p class="text-xl font-medium opacity-90 max-w-xs">StoryTime blossoms best in landscape mode.</p>
+        <h1 class="text-5xl font-kids mb-4">Turn your device!</h1>
+        <p class="text-2xl font-bold opacity-90 max-w-md">StoryTime blossoms best in horizontal (wide) mode. Please rotate your smartphone to continue!</p>
     </div>
 </body>
 </html>
